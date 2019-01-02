@@ -1,0 +1,20 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+# price_of_health
+
+The goal of price_of_health is to determine the price of healthcare for certain procedures.  The primary focus right now is in the state of Maryland.  The data is "openly" available at https://healthcarequality.mhcc.maryland.gov/public/TopDrgPricingForMaryland, but not in the easiest format.
+
+[ ] Check out http://www.hscrc.state.md.us/Pages/hsp_Data2.aspx for payment details.
+
+
+
