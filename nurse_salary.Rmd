@@ -57,7 +57,7 @@ Here we plot the data for any job title with the name "nurse" in it. We removed 
 
 We show different facets for the different types of nursing positions:
 
-```{r}
+```{r, out.width="100%"}
 g = nurse5 %>% 
   ggplot(aes(x = year, y = dollar_per_hour,
              colour = hospital_name)) + 
@@ -76,7 +76,7 @@ It seems as though Anne Arundel has the highest pay per hour for nurses in many 
 
 Here we plot the same data, but changing the facet and colour combinations so that we are looking within an insitution, and differences among the different nursing types.  This insight may allow nurses to see what a change would look like after a promotion, giving them an expectation of what the average pay would be:
 
-```{r}
+```{r, out.width="100%"}
 g_hosp = nurse5 %>% 
   ggplot(aes(x = year, y = dollar_per_hour,
              colour = job_title)) + 
@@ -84,5 +84,5 @@ g_hosp = nurse5 %>%
   facet_wrap(~ hospital_name) 
 
 p_hosp = ggplotly(g_hosp)
-p_hosp
+print(p_hosp)
 ```
