@@ -6,9 +6,16 @@ library(lubridate)
 library(dplyr)
 library(purrr)
 library(pbapply)
+library(here)
 
-source("html_extract_table_rows.R")
-x = read_html("MD/all_payers_2016.html")
+# data from https://healthcarequality.mhcc.maryland.gov/public/TopDrgPricingForMaryland
+fname = here("MD", "all_payers_2016.html")
+source(here("code", "html_extract_table_rows.R"))
+remove_comma = function(x) {
+  x = gsub(",", "", x)
+  as.numeric(x)
+}
+x = read_html(fname)
 
 right_div = xml2::xml_find_all(x, '//div[ @id = "result"]')
 stopifnot(length(right_div) == 1)
@@ -58,6 +65,7 @@ colnames(mtab) = hdr
 mtab = as_data_frame(mtab)
 mtab = mtab %>% 
   select(-"Click arrow to show details")
+mtab$"Number of Cases" = remove_comma(mtab$"Number of Cases")
 mtab = mtab %>% 
   rename(med_cond =  "Medical Conditions (APR-DRG)",
          apr_drg_id = "APR-DRG ID", 
@@ -79,10 +87,9 @@ dnode_tabs = pblapply(dnode, function(x) {
 # one before
 names(dnode_tabs) = mtab$med_cond[ mtab$row_index == which(dets) - 1 ]
 
-Smain_tab = lapply(dnode_tabs, dplyr::first)
+main_tab = lapply(dnode_tabs, dplyr::first)
 main_tab = purrr::map_df(main_tab, function(x) { 
-  x$"Number of Cases" = gsub(",", "", x$"Number of Cases")
-  x$"Number of Cases" = as.numeric(x$"Number of Cases")
+  x$"Number of Cases" = remove_comma(x$"Number of Cases")
   x
   }, .id = "med_cond")
 main_tab = as_tibble(main_tab)
@@ -90,8 +97,7 @@ main_tab = as_tibble(main_tab)
 
 other_tab = lapply(dnode_tabs, dplyr::nth, 2)
 other_tab = purrr::map_df(other_tab, function(x) { 
-  x$"Number of Cases" = gsub(",", "", x$"Number of Cases")
-  x$"Number of Cases" = as.numeric(x$"Number of Cases")
+  x$"Number of Cases" = remove_comma(x$"Number of Cases")
   x
 }, .id = "med_cond")
 other_tab = as_tibble(other_tab)
@@ -99,4 +105,11 @@ other_tab = as_tibble(other_tab)
 main_tab$period_start = period[1]
 main_tab$period_end = period[2]
 
+other_tab$period_start = period[1]
+other_tab$period_end = period[2]
 
+L = list(overall_tab = mtab,
+         hospital_tab = main_tab,
+         payer_tab = other_tab)
+outfile = sub("[.]html$", ".rds", fname)
+write_rds(L, path = outfile, compress = "xz")
