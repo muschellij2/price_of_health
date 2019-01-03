@@ -1,0 +1,88 @@
+---
+title: "Where Should I Work as a Nurse in Maryland"
+author: "John Muschelli"
+date: "1/2/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(readr)
+library(lubridate)
+library(dplyr)
+library(readxl)
+library(ggplot2)
+library(plotly)
+library(here)
+```
+
+# The Data
+
+The data was gathered from Maryland health services cost review commission: https://hscrc.state.md.us/Pages/hsp_Data2.aspx.  The data is from 2010-2016.  Older data is available, but only in PDF format.  The other data was in XLSX format.  The data was described as:
+
+> Wage and Salary Survey Results, reported annually, lists wage/salary and benefit data for 75 categories of hospital workers, and it is used for disclosure and is the basis for the Labor Market Adjustor to account for differences in area wage levels.
+
+```{r}
+var_info = read_excel(here("salary", "2016.xlsx"), sheet = "Format")
+var_info = var_info %>% 
+  rename_all(tolower) %>%
+  filter(!is.na(varnum))
+
+res = read_rds(here("salary", "salary_data.rds"))
+df = res %>% 
+  filter(job_title != "TOTAL") %>% 
+  filter(hours_work > 0) %>% 
+  filter(!is.na(hospital_name)) %>% 
+  select(year, hospital_name, job_title,
+         hours_work, num_employees,
+         total_salary,
+         dollar_per_hour, total_cost) %>% 
+  mutate(avg_salary_per_pay = total_salary / num_employees) %>% 
+  arrange(desc(dollar_per_hour), desc(num_employees))
+
+nurse = df %>% 
+  filter(grepl("NURSE", toupper(job_title))) 
+
+nurse5 = nurse %>% 
+  filter(num_employees >= 5)
+```
+
+The data was curated and harmonized, as there were different variable names and codes for hospitals over the years as well as changing job title names (job codes remain constant).  This happens as the CCN (CMS Certification Number) changes if hospitals change names, are bought, or close.  
+
+# Nurse Data
+
+Here we plot the data for any job title with the name "nurse" in it. We removed any reports where there were less than 5 employees recorded for the pay.  Here we plot the year versus the average pay per hour as calculated by the total salary of all employees of that group divided by the total number of hours worked for those employees during a common pay period.  There is another hourly wage column, but that incorporates fringe benefits into the pay and we wished to strictly focus on wages.  The one downside is the pay with fringe provides a range of hourly wages (including fringe), which can show the variability.  We may be able to transform the data a bit to get a pseudo range for the wage-only data.
+
+## Nursing by Position
+
+We show different facets for the different types of nursing positions:
+
+```{r}
+g = nurse5 %>% 
+  ggplot(aes(x = year, y = dollar_per_hour,
+             colour = hospital_name)) + 
+  geom_line() + guides(colour = FALSE) +
+  facet_wrap(~ job_title) 
+
+p = ggplotly(g)
+print({p %>% hide_legend()})
+```
+
+
+It seems as though Anne Arundel has the highest pay per hour for nurses in many categories.  These wages are not adjusted for cost of living, which may make other salaries higher or lower depending on the surrounding area.  We would like to determine the COLA along with driving distance, but would need information from a nurse looking for the position.
+
+## Nursing by Institution
+
+
+Here we plot the same data, but changing the facet and colour combinations so that we are looking within an insitution, and differences among the different nursing types.  This insight may allow nurses to see what a change would look like after a promotion, giving them an expectation of what the average pay would be:
+
+```{r}
+g_hosp = nurse5 %>% 
+  ggplot(aes(x = year, y = dollar_per_hour,
+             colour = job_title)) + 
+  geom_line() +
+  facet_wrap(~ hospital_name) 
+
+p_hosp = ggplotly(g_hosp)
+p_hosp
+```
